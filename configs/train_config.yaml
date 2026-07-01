@@ -1,0 +1,47 @@
+device: "cuda"
+amp_enabled: true   # mixed precision - RTX 4500 Ada supports this well
+
+# ===========================================================================
+# STAGE A: joint training of all 3 backbones + fusion + multi-label set head,
+# trained TOGETHER from the start (not staged per-position anymore, since
+# "which methods appear anywhere" doesn't have the same per-position freezing
+# rationale that ordered sequence prediction did - every stream can usefully
+# contribute gradient to every method's presence signal from epoch 1).
+# ===========================================================================
+stage_a_set_detection:
+  epochs: 30
+  lr: 0.00002
+  weight_decay: 0.0001
+  optimizer: "adamw"
+  scheduler: "cosine"
+  warmup_epochs: 2
+  # BCE-with-logits per method, summed/averaged across 5 methods
+  pos_weight_balancing: true   # see training/losses.py - corrects for the fact
+                                 # that with always-3-of-5 positive labels per
+                                 # video, raw BCE is already fairly balanced,
+                                 # but this stays on for safety/robustness
+
+# ===========================================================================
+# STAGE B (separate, smaller, trained later): given a known/predicted 3-method
+# set, predict their order (3! = 6 classes). Only relevant once Stage A is
+# performing well - run training/stageB_train_sequence.py independently.
+# ===========================================================================
+stage_b_sequence:
+  epochs: 25
+  lr: 0.0001
+  weight_decay: 0.0001
+  optimizer: "adamw"
+  scheduler: "cosine"
+  warmup_epochs: 2
+  # Stage B trains on the FROZEN Stage A fused embedding (cheap - small model,
+  # no need to touch the big backbones again) plus an explicit encoding of the
+  # known/predicted 3-method set as input.
+  freeze_stage_a: true
+
+early_stopping:
+  patience: 6
+  metric: "val_exact_set_match_acc"
+
+checkpoint:
+  save_every_n_epochs: 1
+  keep_best_only: false   # keep all - useful for ablation later, disk space permitting

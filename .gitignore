@@ -1,0 +1,44 @@
+# ==========================
+# Python
+# ==========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.venv/
+venv/
+env/
+
+# ==========================
+# Datasets
+# ==========================
+ffp_dataset/
+generated_videos/
+
+# Metadata (regenerated)
+_metadata_index.csv
+
+# ==========================
+# Cached features
+# ==========================
+seqdf_cache/
+*.pt
+*.pth
+
+# ==========================
+# Training outputs
+# ==========================
+outputs/checkpoints/
+outputs/logs/
+outputs/splits/
+
+# TensorBoard
+runs/
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,36 @@
+# ============================================================
+# EDIT THIS FILE FIRST. Every other script reads paths from here.
+# Use forward slashes even on Windows (Python/yaml handles it fine) -
+# avoids backslash-escaping headaches.
+# ============================================================
+
+# Root of the original FaceForensics++ source dataset
+# Expects subfolders: original/, Deepfakes/, Face2Face/, FaceShifter/, FaceSwap/, NeuralTextures/
+ffpp_root: "C:/Users/Student/Desktop/seqdf_project/ffpp_dataset"
+
+# Folder containing the 5580 chained/generated videos (flat folder, as described)
+generated_videos_dir: "C:/Users/Student/Desktop/seqdf_project/generated_videos"
+
+# Optional: folder with the pipeline's own metadata CSVs, if you want to cross-check
+# against your filename-parsed labels
+pipeline_csv_dir: "C:/Users/Student/Desktop/seqdf_project"
+
+# Where this repo lives (used for relative imports / scripts)
+project_root: "C:/Users/Student/Desktop/seqdf_project/seqdf"
+
+# Manifest CSV built by scripts/01_build_manifest.py
+manifest_csv: "C:/Users/Student/Desktop/seqdf_project/seqdf/outputs/manifest.csv"
+
+# Train/val/test split CSVs (built from manifest, split by SOURCE VIDEO ID,
+# never by output video - see data/dataset_builder.py for why this matters)
+splits_dir: "C:/Users/Student/Desktop/seqdf_project/seqdf/outputs/splits"
+
+# Optional precomputed feature cache (frames / SRM / DCT tensors saved as .pt files)
+# Leave enabled unless disk space is tight - saves huge amounts of repeated video decode time
+use_feature_cache: true
+feature_cache_dir: "C:/Users/Student/Desktop/seqdf_project/seqdf_cache"
+
+# Checkpoints / logs
+checkpoint_dir: "C:/Users/Student/Desktop/seqdf_project/seqdf/outputs/checkpoints"
+log_dir: "C:/Users/Student/Desktop/seqdf_project/seqdf/outputs/logs"
+predictions_dir: "C:/Users/Student/Desktop/seqdf_project/seqdf/outputs/predictions"

@@ -1,0 +1,57 @@
+rgb_backbone:
+  type: "video_swin_t"        # alternatives: "timesformer", "videomae_base"
+  pretrained: true
+  embedding_dim: 768
+  freeze_after_stage1: true   # set false during stage4 joint finetune (handled in code, not here)
+
+srm_backbone:
+  type: "efficientnet_b4"
+  pretrained: true
+  embedding_dim: 512
+  temporal_pool: "tcn"        # small temporal conv net pools 16 frame embeddings -> 1
+
+dct_backbone:
+  type: "resnet18_modified"   # first conv modified for DCT energy map input channels
+  pretrained: false           # DCT maps are not natural images - imagenet pretrain doesn't transfer well
+  embedding_dim: 512
+  temporal_pool: "transformer"  # 2-layer transformer pools 16 frame embeddings -> 1
+
+fusion:
+  input_dim: 1792              # 768 + 512 + 512
+  hidden_dims: [512, 256]
+  dropout: 0.3
+
+# ===========================================================================
+# STAGE A: Set detection head (multi-label, order-agnostic)
+# Predicts which 3 of 5 methods were used anywhere in the video, NOT the order.
+# This is now the primary training target - see README for the full reasoning
+# on why set detection is the more tractable, better-posed problem than
+# sequence prediction given how signal degrades across chained blending.
+# ===========================================================================
+set_head:
+  type: "multilabel_mlp"
+  hidden_dim: 256
+  num_methods: 5                # one sigmoid output per method (DF, F2F, FSh, FS, NT)
+  dropout: 0.3
+  # at inference, top-3 sigmoid scores are taken as the predicted set
+  # (we know every video has exactly 3 manipulations, so this is a safe assumption)
+  selection: "top_k"
+  top_k: 3
+
+label_smoothing:
+  set_detection: 0.05            # light smoothing on the multi-label BCE targets
+
+# ===========================================================================
+# STAGE B (separate, later, smaller model): Sequence decoder
+# Given a KNOWN/predicted set of 3 methods, predicts their order.
+# 3! = 6 possible orderings of a known triple - much smaller search space than
+# the original 60-way ordered-sequence problem. This stage is stubbed out and
+# trained independently, AFTER set detection (Stage A) is working well.
+# See models/stage_b_sequence/ and training/stageB_train_sequence.py
+# ===========================================================================
+stage_b_decoder:
+  type: "small_transformer"
+  hidden_dim: 128
+  num_layers: 1
+  num_heads: 2
+  num_orderings: 6               # 3! permutations of a known 3-element set

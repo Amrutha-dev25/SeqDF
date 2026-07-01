@@ -1,0 +1,53 @@
+# Method label mapping - MUST match your generation script's naming exactly.
+# Index order matters: this defines the integer class id used everywhere downstream.
+methods:
+  - DF    # Deepfakes
+  - F2F   # Face2Face
+  - FSh   # FaceShifter
+  - FS    # FaceSwap
+  - NT    # NeuralTextures
+
+num_methods: 5
+
+# Video properties (from your FF++ C23 source)
+source_fps: 25
+source_resolution: [640, 480]   # width, height
+approx_frames_per_video: 300
+
+# Frame sampling strategy
+frame_sampling:
+  method: "diff_based"     # highest inter-frame difference frames carry most artifact signal
+  num_frames: 16
+  resize_to: [224, 224]
+  # if diff-based sampling fails (e.g. corrupt video / static content), fall back to uniform
+  fallback: "uniform"
+
+# Face region handling
+face_already_centered: true   # FF++ is face-centric, per your setup - skip face detector
+
+# SRM residual extraction settings
+srm:
+  num_filters: 3              # standard 3 high-pass SRM kernels (see data/preprocessing/srm_filters.py)
+  normalize: true
+
+# DCT feature extraction settings
+dct:
+  block_size: 8                # standard JPEG-style 8x8 block DCT
+  energy_bands: 3              # low/mid/high frequency band energy split per block
+  output_channels: 3            # stacked energy maps -> pseudo-RGB for backbone reuse
+
+# Train/val/test split strategy
+# CRITICAL: split by SOURCE video id (the 93 original source videos), never by output
+# video. Since each source produces up to 60 outputs, splitting by output video would
+# leak the same source face/identity across train and val, inflating validation accuracy.
+split:
+  strategy: "by_source_id"
+  train_frac: 0.70
+  val_frac: 0.15
+  test_frac: 0.15
+  random_seed: 42
+
+dataloader:
+  batch_size: 8          # per-stream tensors at 16x224x224x3 - conservative for 25.8GB VRAM headroom alongside model
+  num_workers: 6
+  pin_memory: true
