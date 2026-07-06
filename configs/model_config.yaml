@@ -29,12 +29,19 @@ fusion:
 # sequence prediction given how signal degrades across chained blending.
 # ===========================================================================
 set_head:
-  type: "multilabel_mlp"
+  type: "classification_10way"    # was "multilabel_mlp" - see chat discussion
+                                    # for why: BCE-per-method loss doesn't
+                                    # directly optimize the top-3/exact-match
+                                    # objective. Set back to "multilabel_mlp"
+                                    # to roll back to the original head.
   hidden_dim: 256
-  num_methods: 5                # one sigmoid output per method (DF, F2F, FSh, FS, NT)
+  num_methods: 5                  # only used by the multilabel_mlp head
+  num_classes: 10                 # only used by classification_10way head - must equal C(num_methods, 3)
   dropout: 0.3
-  # at inference, top-3 sigmoid scores are taken as the predicted set
-  # (we know every video has exactly 3 manipulations, so this is a safe assumption)
+  # multilabel_mlp only: at inference, top-3 sigmoid scores are taken as the
+  # predicted set (we know every video has exactly 3 manipulations, so this is
+  # a safe assumption). classification_10way uses plain argmax instead - no
+  # selection/top_k config needed for it.
   selection: "top_k"
   top_k: 3
 

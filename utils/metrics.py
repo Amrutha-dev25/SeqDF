@@ -17,7 +17,7 @@ Stage B (sequence ordering) metrics:
 import torch
 import numpy as np
 
-from models.fusion.set_detection_head import predict_set_top_k
+from models.fusion.set_detection_head import predict_set_top_k, predict_set_from_classification
 
 
 def per_method_accuracy(pred_multi_hot: torch.Tensor, true_multi_hot: torch.Tensor) -> float:
@@ -72,6 +72,31 @@ def ordering_top_k_accuracy(logits: torch.Tensor, targets: torch.Tensor, k: int 
     targets_expanded = targets.unsqueeze(-1).expand_as(topk_preds)
     correct = (topk_preds == targets_expanded).any(dim=-1).float()
     return correct.mean().item()
+
+
+def compute_set_classification_metrics(class_logits: torch.Tensor, set_targets_multihot: torch.Tensor) -> dict:
+    """
+    Classification-head (10-way softmax) variant of compute_set_detection_metrics.
+    Converts the predicted class back to a multi-hot vector so per_method_acc/
+    per_method_f1 stay directly comparable in definition and scale to your
+    existing multilabel-head logs - only the loss/head changed underneath,
+    the metric definitions themselves did not. exact_set_match_acc under this
+    head is equivalent to (argmax(class_logits) == true_class_idx).mean(),
+    just computed via the same multi-hot comparison for consistency.
+
+    Args:
+        class_logits: (B, 10) raw logits
+        set_targets_multihot: (B, 5) multi-hot ground truth (same format as
+                               already used everywhere else in this project -
+                               no changes needed to data/video_dataset.py)
+    """
+    pred_multi_hot = predict_set_from_classification(class_logits)
+
+    return {
+        "per_method_acc": per_method_accuracy(pred_multi_hot, set_targets_multihot),
+        "per_method_f1": per_method_f1(pred_multi_hot, set_targets_multihot),
+        "exact_set_match_acc": exact_set_match_accuracy(pred_multi_hot, set_targets_multihot),
+    }
 
 
 def compute_stage_b_metrics(ordering_logits: torch.Tensor, ordering_targets: torch.Tensor) -> dict:

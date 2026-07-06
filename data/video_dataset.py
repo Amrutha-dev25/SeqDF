@@ -101,18 +101,39 @@ def build_dataloaders(paths_cfg: dict, data_cfg: dict):
     """Convenience function: builds train/val/test DataLoaders from the split CSVs."""
     from torch.utils.data import DataLoader
 
+    dl_cfg = data_cfg["dataloader"]
+    num_workers = dl_cfg["num_workers"]
+
+    # persistent_workers and prefetch_factor are only valid when num_workers > 0
+    # (PyTorch raises if you pass them with num_workers=0). Using .get() with
+    # defaults keeps this backward-compatible with older data_config.yaml files
+    # that don't have these keys at all.
+    persistent_workers = dl_cfg.get("persistent_workers", False) and num_workers > 0
+    prefetch_factor = dl_cfg.get("prefetch_factor", None) if num_workers > 0 else None
+
     loaders = {}
     for split in ["train", "val", "test"]:
         csv_path = os.path.join(paths_cfg["splits_dir"], f"{split}.csv")
         dataset = SeqDeepFakeDataset(csv_path, paths_cfg, data_cfg)
-        loaders[split] = DataLoader(
-            dataset,
-            batch_size=data_cfg["dataloader"]["batch_size"],
+
+        dl_kwargs = dict(
+            batch_size=dl_cfg["batch_size"],
             shuffle=(split == "train"),
-            num_workers=data_cfg["dataloader"]["num_workers"],
-            pin_memory=data_cfg["dataloader"]["pin_memory"],
+            num_workers=num_workers,
+            pin_memory=dl_cfg["pin_memory"],
             drop_last=(split == "train"),
         )
+        if num_workers > 0:
+            dl_kwargs["persistent_workers"] = persistent_workers
+            if prefetch_factor is not None:
+                dl_kwargs["prefetch_factor"] = prefetch_factor
+
+        loaders[split] = DataLoader(dataset, **dl_kwargs)
+
+    print(f"[DataLoader config] num_workers={num_workers}  pin_memory={dl_cfg['pin_memory']}  "
+          f"persistent_workers={persistent_workers}  prefetch_factor={prefetch_factor}  "
+          f"batch_size={dl_cfg['batch_size']}")
+
     return loaders
 
 

@@ -49,5 +49,7 @@ split:
 
 dataloader:
   batch_size: 8          # per-stream tensors at 16x224x224x3 - conservative for 25.8GB VRAM headroom alongside model
-  num_workers: 6
-  pin_memory: true
+  num_workers: 4          # reverted from any 0 value you may have set - 0 disables all prefetch overlap
+  pin_memory: true         # required for non_blocking=True .to(device) calls to actually be async
+  persistent_workers: true # avoids respawning worker processes at the start of every epoch (real overhead on Windows spawn-based multiprocessing)
+  prefetch_factor: 2       # each worker prepares 2 batches ahead of when the GPU needs them

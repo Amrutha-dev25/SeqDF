@@ -36,7 +36,7 @@ class TemporalConvPool(nn.Module):
 
 
 class SRMBackbone(nn.Module):
-    def __init__(self, backbone_type: str = "efficientnet_b4", embedding_dim: int = 512, pretrained: bool = True):
+    def __init__(self, backbone_type: str = "efficientnet_b0", embedding_dim: int = 512, pretrained: bool = True):
         super().__init__()
         self.embedding_dim = embedding_dim
 

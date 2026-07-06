@@ -1,9 +1,13 @@
 """
 Loss functions for both stages.
 
-Stage A: multi-label binary cross-entropy (one independent binary decision per
-method: "did this method appear anywhere in the video"). BCEWithLogitsLoss is
-used directly on raw logits (not sigmoid + BCELoss) for numerical stability.
+Stage A: two options, controlled by configs/model_config.yaml set_head.type:
+  - "multilabel_mlp": independent binary cross-entropy per method (original).
+    BCEWithLogitsLoss is used directly on raw logits (not sigmoid + BCE) for
+    numerical stability.
+  - "classification_10way": direct 10-way cross-entropy over all C(5,3)=10
+    possible 3-of-5 sets (see chat discussion - this directly optimizes the
+    same objective val_exact_set_match measures, unlike the multilabel option).
 
 Stage B: standard cross-entropy over the 6 possible orderings of a known set.
 """
@@ -31,6 +35,24 @@ def set_detection_loss(set_logits: torch.Tensor, set_targets: torch.Tensor,
 
     loss_fn = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     return loss_fn(set_logits, set_targets)
+
+
+def set_classification_loss(class_logits: torch.Tensor, class_targets: torch.Tensor,
+                             label_smoothing: float = 0.0, class_weight: torch.Tensor = None) -> torch.Tensor:
+    """
+    Args:
+        class_logits: (B, 10) raw logits from SetClassificationHead
+        class_targets: (B,) integer class index 0-9 - convert your existing
+                       multi-hot set_vector labels with
+                       models.fusion.set_detection_head.multi_hot_to_class_idx()
+        label_smoothing: standard CrossEntropyLoss label smoothing
+        class_weight: optional (10,) tensor to rebalance class frequency
+                      (passed through to CrossEntropyLoss's weight= arg) - see
+                      training/stageA_train_set_detection.py for how this gets
+                      computed from the training split's actual class balance
+    """
+    loss_fn = nn.CrossEntropyLoss(label_smoothing=label_smoothing, weight=class_weight)
+    return loss_fn(class_logits, class_targets)
 
 
 def sequence_ordering_loss(ordering_logits: torch.Tensor, ordering_targets: torch.Tensor,

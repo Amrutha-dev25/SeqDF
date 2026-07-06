@@ -9,7 +9,7 @@ amp_enabled: true   # mixed precision - RTX 4500 Ada supports this well
 # contribute gradient to every method's presence signal from epoch 1).
 # ===========================================================================
 stage_a_set_detection:
-  epochs: 30
+  epochs: 80
   lr: 0.00002
   weight_decay: 0.0001
   optimizer: "adamw"
@@ -39,7 +39,9 @@ stage_b_sequence:
   freeze_stage_a: true
 
 early_stopping:
-  patience: 6
+  enabled: false   # early stopping fully disabled - will always train the complete
+                     # 80-epoch schedule regardless of validation plateau/regression
+  patience: 10       # inert while enabled=false, kept for reference if re-enabled later
   metric: "val_exact_set_match_acc"
 
 checkpoint:
